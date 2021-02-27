@@ -1,0 +1,56 @@
+body {
+    background-color: cadetblue;
+}
+
+
+#configdiv{
+
+    
+    padding: 30px;
+    border-radius: 5px;
+    background-color: darkviolet;
+
+}
+
+select {
+    width: 100px;
+    border-radius: 4px;
+    font-size: 20px;
+}
+
+option {
+    font-size: 20px;
+    background-color: darkturquoise;
+}
+
+option :hover{
+    text-align: center;
+    background-color: crimson;
+
+}
+
+h3 {
+    font-size: larger;
+    background-color: deepskyblue;
+    transition: 0.3s ease;
+    border-radius: 5px;
+    padding: 2px;
+}
+
+h3:hover{
+    background-color: firebrick;
+}
+
+span {
+    background-color:darksalmon;
+    font-size: larger;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
+}
+
+button {
+
+    font-size: larger;
+
+}
