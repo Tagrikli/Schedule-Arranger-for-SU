@@ -5,18 +5,41 @@ import json
 
 
 class Section:
-    def __init__(self, vals):
-        crn, schedule, group, instructor = vals
+    def __init__(self, vals, getSule):
+        crn, schedule, group, _ = vals
 
-        self.crn = int(crn)
         self.schedules = schedule
-        self.group = group
-        self.instructor = instructor
-        self.sule = self.getSule()
+        self.sule = getSule(self.schedules)
+        self.slots = {group:int(crn)}
 
-    def getSule(self):
+
+    def getCRNs(self):
+        return list(self.slots.values())
+
+    def addSlot(self,group,crn):
+        self.slots[group] = crn
+
+
+class Class:
+    def __init__(self):
+        self.sections = []
+
+    def addSection(self, vals):
+
+        appended = False
+        crn, schedule, group, _ = vals
+        for section in self.sections:
+            if np.all(section.sule == self.getSule(schedule)):
+                section.addSlot(group,int(crn))
+                appended = True
+
+        if not appended:
+            self.sections.append(Section(vals, self.getSule))
+
+
+    def getSule(self,schedules):
         sule = np.zeros((15,6))
-        for sched in self.schedules:
+        for sched in schedules:
                 day = sched["day"]
                 start = sched["start"]
                 dur = sched["duration"]
@@ -25,19 +48,14 @@ class Section:
 
         return sule
 
-class Class:
-    def __init__(self):
-        self.sections = []
-
-    def addSection(self, vals):
-        self.sections.append(Section(vals))
 
     @property
     def sectionCount(self):
         return len(self.sections)
 
-    def getSectionCRNs(self):
-        return [sec for sec in self.sections]
+
+    def getSections(self):
+        return self.sections
 
 
 
@@ -48,7 +66,7 @@ class Course:
         self.classes = []
 
     def addClass(self, classes):
-        for classue in classes["classes"]:
+        for classue in classes:
             classTemp = Class()
             for sec in classue["sections"]:
                 classTemp.addSection(
@@ -56,12 +74,12 @@ class Course:
             self.classes.append(classTemp)
 
     def getCombinations(self):
-        crnList = []
-
+        
+        sections = []
         for clasue in self.classes:
-            crnList.append(clasue.getSectionCRNs())
+            sections.append(clasue.getSections())
 
-        return list(product(*crnList))
+        return list(product(*sections))
 
 
 
@@ -70,23 +88,21 @@ class AddDropHelper:
         with open(dataFilename, "r") as file:
             self.data = json.loads(file.read())
 
-        self.courseList = []
-        self.courseCodes = []
+        self.courses = {}
         for course in self.data["courses"]:
             crsTemp = Course(course["name"],course["code"])
-            crsTemp.addClass(course)
-            self.courseList.append(crsTemp)
-            self.courseCodes.append(course["code"])
+            crsTemp.addClass(course["classes"])
+            self.courses[course["code"]] = crsTemp
 
     def findMatches(self,codes,confLimit = 0):
         schedules = []
         for code in codes:
-            for course in self.courseList:
+            for course in list(self.courses.values()):
                 if course.code == code:
                     schedules.append(course.getCombinations())
 
         allPossibs = list(product(*schedules))
-        minCon = 100
+
         possibleSchedules = []
         for possib in tqdm(allPossibs):
             conCo, sule = self.findConflicts(possib)
@@ -99,19 +115,19 @@ class AddDropHelper:
 
     @property
     def getCourseCodes(self):
-        return {"codes":self.courseCodes}
+        return {"codes":list(self.courses.keys())}
 
     def saveCRNs(self,possibleSchedules,loc):
         
         modif = {"result":[]}
-        for data in possibleSchedules:
+        for onepossib in possibleSchedules:
             crnList = []
-            for su in data["su"]:
-                for clasue in su:
-                    crnList.append(clasue.crn)
+            for classue in onepossib["su"]:
+                for section in classue:
+                    crnList.append(section.getCRNs())
 
-                data["su"] = crnList
-            modif["result"].append(data)
+                onepossib["su"] = crnList
+            modif["result"].append(onepossib)
 
         with open(loc + "result.json","w") as file:
             file.write(json.dumps(modif))
@@ -130,4 +146,4 @@ class AddDropHelper:
 if __name__ == "__main__":
 
     help = AddDropHelper("202002.json")
-    print(help.courseCodes)
+    print(help.courses.values())

@@ -6,22 +6,27 @@ helper = AddDropHelper("202002.json")
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return "Hello!"
 
 @app.route("/api/v1/courseCodes")
 def courseCodes():
-    return jsonify(helper.getCourseCodes)
+    response = jsonify(helper.getCourseCodes)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
-@app.route("/api/v1/matchRequest/<lolo>&<int:conf>")
-def request(lolo,conf):
+@app.route("/api/v1/matchRequest/<lolo>")
+def request(lolo):
     lolo = lolo.replace("%20"," ")
     codes = lolo.split(";")
     print(codes)
-    possibleSchudules = helper.findMatches(codes,conf)
+    possibleSchudules = helper.findMatches(codes)
     helper.saveCRNs(possibleSchudules,"static/")
     with open("static/result.json","r") as file:
         content = file.read()
 
-    return jsonify(content)
+    response = jsonify(content)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+
+    return response
 
 app.run()
